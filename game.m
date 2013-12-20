@@ -11,16 +11,15 @@ classdef game < matlab.mixin.Copyable % handle + copyable
     methods
         function obj = game(opt)
             obj.options = opt;
-            obj.looper  = looper(opt);
             obj.board   = board(opt);
             obj.agent   = agent(opt,obj.board.retina);
             obj.cinema  = cinema(opt,obj.board);
+            obj.looper  = looper(obj);
         end
         
         function start(obj)
             try
                 obj.looper.start();
-                while obj.looper.run; eval(obj.looper.get()); end
             catch err
                 Screen('CloseAll');
                 rethrow(err);
