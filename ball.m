@@ -13,73 +13,145 @@ classdef ball < matlab.mixin.Copyable % handle + copyable
             % options
             obj.options = opt;
             % centre of balls (no overlapping)
-            ds = 0;
-            while any(ds(:)<power(2*opt.ball_radius,2))
+            ds = -1;
+            while any(ds(:) < 4*opt.ball_radius*opt.ball_radius)
                 obj.centre(:,1) = opt.ball_radius + rand(1,opt.ball_number) * (opt.board_size(1) - 2*opt.ball_radius);
                 obj.centre(:,2) = opt.ball_radius + rand(1,opt.ball_number) * (opt.board_size(2) - 2*opt.ball_radius);
-                x = obj.centre(:,1) * ones(1,opt.ball_number);
-                dx = power(x-x',2);
-                y = obj.centre(:,2) * ones(1,opt.ball_number);
-                dy = power(y-y',2);
-                ds = dx + dy;
-                ds(power(1:opt.ball_number,2)) = Inf;
+                ds = obj.dist2_balls();
+                ds(~ds) = Inf;
             end
             % angle and speed
-            obj.angle       = 2 * pi * rand(1,opt.ball_number);
+            obj.angle = 2 * pi * rand(1,opt.ball_number);
             obj.speed(1:opt.ball_number) = opt.ball_speed;
         end
         
-        %% methods
-        function move(obj)
-            for i = 1:obj.options.ball_number
-                movement = obj.speed(i) * [cos(obj.angle(i)),sin(obj.angle(i))];
-                obj.centre(i,:) = obj.centre(i,:) + movement;
-            end
-            obj.speed = obj.speed .* obj.options.ball_acceleration;
+        %% distance methods
+        
+        % distance between balls
+        function ds = dist2_balls(obj)
+            x = obj.centre(:,1) * ones(1,obj.options.ball_number);
+            dx = power(x-x',2);
+            y = obj.centre(:,2) * ones(1,obj.options.ball_number);
+            dy = power(y-y',2);
+            ds = dx + dy;
         end
         
-        function collision(obj)
-            % collision entre billes (choc elastique)
-            for k = j+1 : nb_agents
-                dist = (xyn(j,1)-xyn(k,1))*(xyn(j,1)-xyn(k,1)) + (xyn(j,2)-xyn(k,2))*(xyn(j,2)-xyn(k,2));
-                if dist < 4*rayon*rayon
-                    nx = (xy(k,1)-xy(j,1))/(2*rayon);
-                    ny = (xy(k,2)-xy(j,2))/(2*rayon);
+        % distance to balls
+        function ds = dist2_point(obj,point)
+            x = obj.centre(:,1);
+            dx = power(x-point(1),2);
+            y = obj.centre(:,2);
+            dy = power(y-point(2),2);
+            ds = dx + dy;
+        end
+        
+        %% play methods
+        
+        % move balls one step
+        function play(obj)
+            dcentre = ([obj.speed;obj.speed] .* [cos(obj.angle);sin(obj.angle)])';
+            new_centre = obj.centre + dcentre;
+            collisions = [];
+            for i = 1 : obj.options.ball_number
+                [new_centre,dcentre,collisions] = obj.collision(i,dcentre,new_centre,collisions);
+                [new_centre,dcentre]            = obj.bottombound(i,dcentre,new_centre);
+                [new_centre,dcentre]            = obj.leftbound(i,dcentre,new_centre);
+                [new_centre,dcentre]            = obj.topbound(i,dcentre,new_centre);
+                [new_centre,dcentre]            = obj.rightbound(i,dcentre,new_centre);
+            end
+            obj.centre = new_centre;
+            obj.speed  = obj.speed .* obj.options.ball_acceleration;
+        end
+        
+        % correct for collisions
+        function [new_centre,dcentre,collisions] = collision(obj,i,dcentre,new_centre,collisions)
+            for j = (i+1):obj.options.ball_number
+                dist = (new_centre(i,1)-new_centre(j,1))*(new_centre(i,1)-new_centre(j,1)) + (new_centre(i,2)-new_centre(j,2))*(new_centre(i,2)-new_centre(j,2));
+                if dist < 4*obj.options.ball_radius*obj.options.ball_radius
+                    obj.speed(i) = obj.options.ball_speed;
+                    obj.speed(j) = obj.options.ball_speed;
+
+                    nx = (obj.centre(j,1)-obj.centre(i,1))/(2*obj.options.ball_radius);
+                    ny = (obj.centre(j,2)-obj.centre(i,2))/(2*obj.options.ball_radius);
                     gx = -ny;
                     gy = nx;
-                    v1n = nx*dxdy(j,1) + ny*dxdy(j,2);
-                    v1g = gx*dxdy(j,1) + gy*dxdy(j,2);
-                    v2n = nx*dxdy(k,1) + ny*dxdy(k,2);
-                    v2g = gx*dxdy(k,1) + gy*dxdy(k,2);
+                    v1n = nx*dcentre(i,1) + ny*dcentre(i,2);
+                    v1g = gx*dcentre(i,1) + gy*dcentre(i,2);
+                    v2n = nx*dcentre(j,1) + ny*dcentre(j,2);
+                    v2g = gx*dcentre(j,1) + gy*dcentre(j,2);
 
-                    dxdy(j,:) = [nx*v2n+gx*v1g , ny*v2n+gy*v1g];
-                    dt(j) = atan(dxdy(j,2)/dxdy(j,1));
-                    if dxdy(j,1)<0    dt(j)=dt(j)+pi;    end
-                    dxdy(j,:) = vitesse*[cos(dt(j)), sin(dt(j))];
-                    xyn(j,:) = xy(j,:) + dxdy(j,:);
+                    dcentre(i,:) = [nx*v2n+gx*v1g , ny*v2n+gy*v1g];
+                    obj.speed(i) = atan(dcentre(i,2)/dcentre(i,1));
+                    if dcentre(i,1)<0; obj.angle(i) = mod(obj.angle(i)+pi,2*pi); end
+                    dcentre(i,:) = obj.speed(i)*[cos(obj.angle(i)), sin(obj.angle(i))];
+                    new_centre(i,:) = obj.centre(i,:) + dcentre(i,:);
 
-                    dxdy(k,:) = [nx*v1n+gx*v2g , ny*v1n+gy*v2g];
-                    dt(k) = atan(dxdy(k,2)/dxdy(k,1));
-                    if dxdy(k,1)<0    dt(k)=dt(k)+pi;    end
-                    dxdy(k,:) = vitesse*[cos(dt(k)), sin(dt(k))];
-                    xyn(k,:) = xy(k,:) + dxdy(k,:);
+                    dcentre(j,:) = [nx*v1n+gx*v2g , ny*v1n+gy*v2g];
+                    obj.angle(j) = mod(atan(dcentre(j,2)/dcentre(j,1)),2*pi);
+                    if dcentre(j,1)<0; obj.angle(j) = mod(obj.angle(j)+pi,2*pi); end
+                    dcentre(j,:) = obj.speed(j)*[cos(obj.angle(j)), sin(obj.angle(j))];
+                    new_centre(j,:) = obj.centre(j,:) + dcentre(j,:);
 
-                    collisions_du_frame = [collisions_du_frame j];
-                    collisions_du_frame = [collisions_du_frame k];
+                    collisions = [collisions i];
+                    collisions = [collisions j];
+                    
+                    obj.speed(i) = obj.options.ball_speed;
+                    obj.speed(j) = obj.options.ball_speed;
                 end
             end
-            % lateraux de la scene (reflexion)
-            if xyn(j,1)>=rect(3)-rayon || xyn(j,1)<=rect(1)+rayon
-                dt(j) = pi-dt(j);
-                dxdy(j,:) = vitesse*[cos(dt(j)), sin(dt(j))];
-                xyn(j,:) = xy(j,:) + dxdy(j,:);
-            end
-            % le haut/bas de la scene (reflexion)
-            if xyn(j,2)>=rect(4)-rayon || xyn(j,2)<=rect(2)+rayon
-                dt(j) = -dt(j);
-                dxdy(j,:) = vitesse*[cos(dt(j)), sin(dt(j))];
-                xyn(j,:) = xy(j,:) + dxdy(j,:);
+        end
+        
+        % correct for bottom bound
+        function [new_centre,dcentre] = bottombound(obj,i,dcentre,new_centre)
+            if ( new_centre(i,2) >= obj.options.board_size(2)-obj.options.ball_radius && ...
+                 numinrange(obj.angle(i),pi*[0,1]))
+                obj.angle(i) = mod(-obj.angle(i),2*pi);
+                dcentre(i,:) = obj.speed(i)*[cos(obj.angle(i)), sin(obj.angle(i))];
+                obj.centre(i,:) = obj.centre(i,:) + dcentre(i,:);
+                obj.speed(i) = obj.options.ball_speed;
             end
         end
+        
+        % correct for left bound
+        function [new_centre,dcentre] = leftbound(obj,i,dcentre,new_centre)
+            if ( new_centre(i,1) <= obj.options.ball_radius && ...
+                 numinrange(obj.angle(i),pi*[0.5,1.5]))
+                obj.angle(i) = mod(pi-obj.angle(i),2*pi);
+                dcentre(i,:) = obj.speed(i)*[cos(obj.angle(i)), sin(obj.angle(i))];
+                new_centre(i,:) = obj.centre(i,:) + dcentre(i,:);
+                obj.speed(i) = obj.options.ball_speed;
+            end
+        end
+        
+        % correct for top bound
+        function [new_centre,dcentre] = topbound(obj,i,dcentre,new_centre)
+            if ( new_centre(i,2) <= obj.options.ball_radius && ...
+                 numinrange(obj.angle(i),pi*[1,2]))
+                obj.angle(i) = mod(-obj.angle(i),2*pi);
+                dcentre(i,:) = obj.speed(i)*[cos(obj.angle(i)), sin(obj.angle(i))];
+                obj.centre(i,:) = obj.centre(i,:) + dcentre(i,:);
+                obj.speed(i) = obj.options.ball_speed;
+            end
+        end
+        
+        % correct for rigth bound
+        function [new_centre,dcentre] = rightbound(obj,i,dcentre,new_centre)
+            if ( new_centre(i,1) >= obj.options.board_size(1)-obj.options.ball_radius && ...
+                 (numinrange(obj.angle(i),pi*[1.5,2]) || numinrange(obj.angle(i),pi*[0,0.5])))
+                obj.angle(i) = mod(pi-obj.angle(i),2*pi);
+                dcentre(i,:) = obj.speed(i)*[cos(obj.angle(i)), sin(obj.angle(i))];
+                new_centre(i,:) = obj.centre(i,:) + dcentre(i,:);
+                obj.speed(i) = obj.options.ball_speed;
+            end
+        end
+        
     end
+end
+
+%% auxiliar
+
+function ret = numinrange(n,ab)
+    a = ab(1);
+    b = ab(2);
+    ret = (n>=a && n<=b);
 end

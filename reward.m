@@ -2,13 +2,18 @@ classdef reward < matlab.mixin.Copyable % handle + copyable
     
     properties
         options
-        board
     end
     
     methods
-        function obj = reward(opt,brd)
+        
+        %% constructor
+        function obj = reward(opt)
             obj.options = opt;
-            obj.board   = brd;
+        end
+        
+        %% get reward
+        function r = get(obj,vision)
+            r = sum(vision) / obj.options.retina_density;
         end
     end
 end

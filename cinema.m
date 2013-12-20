@@ -16,8 +16,9 @@ classdef cinema < matlab.mixin.Copyable % handle + copyable
             obj.board   = brd;
         end
         
-        %% screen
+        %% start/stop methods
         function start(obj)
+            if ~obj.options.cinema_display; return; end
             Screen('Preference', 'Verbosity',0);
             Screen('Preference', 'SuppressAllWarnings', 1);
             Screen('Preference', 'SkipSyncTests', 2);
@@ -28,20 +29,25 @@ classdef cinema < matlab.mixin.Copyable % handle + copyable
         end
         
         function stop(obj)
-            WaitSecs(3);
+            if ~obj.options.cinema_display; return; end
             Screen('CloseAll');
         end
         
+        %% screen methods
         function background(obj)
+            if ~obj.options.cinema_display; return; end
             colour = [128,128,128];
             Screen('FillRect',obj.ptb_window,colour,obj.ptb_rect);
         end
         
         function flip(obj)
+            if ~obj.options.cinema_display; return; end
             Screen('Flip',obj.ptb_window);
         end
         
+        %% draw methods
         function draw_board(obj)
+            if ~obj.options.cinema_display; return; end
             obj.background();
             obj.draw_frame();
             obj.draw_balls();
@@ -51,7 +57,9 @@ classdef cinema < matlab.mixin.Copyable % handle + copyable
             obj.flip();
         end
         
+        % draw frame
         function draw_frame(obj)
+            if ~obj.options.cinema_display; return; end
             marge = obj.options.cinema_marge;
             rect  = obj.options.cinema_rect;
             frame = [marge,marge,rect(3)-rect(1)-marge,rect(4)-rect(2)-marge];
@@ -60,7 +68,9 @@ classdef cinema < matlab.mixin.Copyable % handle + copyable
             Screen('FrameRect',obj.ptb_window,colour,frame,penwidth);
         end
         
+        % draw balls
         function draw_balls(obj)
+            if ~obj.options.cinema_display; return; end
             for i = 1:obj.options.ball_number
                 board_frame   = [0,0,obj.options.board_size];
                 board_centre  = obj.board.ball.centre(i,:);
@@ -73,21 +83,27 @@ classdef cinema < matlab.mixin.Copyable % handle + copyable
             end
         end
         
+        % draw retina cross
         function draw_retinacross(obj)
+            if ~obj.options.cinema_display; return; end
             board_frame   = [0,0,obj.options.board_size];
             board_centre  = obj.board.retina.centre;
+            board_radius  = obj.options.retina_focus;
+            board_linex   = [board_centre(1)-board_radius,board_centre(2),board_centre(1)+board_radius,board_centre(2)];
+            board_liney   = [board_centre(1),board_centre(2)-board_radius,board_centre(1),board_centre(2)+board_radius];
             cinema_frame  = obj.options.cinema_frame;
-            cinema_centre = rescale_point(board_centre,board_frame,cinema_frame);
+            cinema_linex  = rescale_rect(board_linex,board_frame,cinema_frame);
+            cinema_liney  = rescale_rect(board_liney,board_frame,cinema_frame);
             colour = [255,0,0];
             length = 10;
-            line_x = [cinema_centre(1)-length,cinema_centre(2),cinema_centre(1)+length,cinema_centre(2)];
-            line_y = [cinema_centre(1),cinema_centre(2)-length,cinema_centre(1),cinema_centre(2)+length];
             penwidth = 1;
-            Screen('DrawLine',obj.ptb_window,colour,line_x(1),line_x(2),line_x(3),line_x(4),penwidth);
-            Screen('DrawLine',obj.ptb_window,colour,line_y(1),line_y(2),line_y(3),line_y(4),penwidth);
+            Screen('DrawLine',obj.ptb_window,colour,cinema_linex(1),cinema_linex(2),cinema_linex(3),cinema_linex(4),penwidth);
+            Screen('DrawLine',obj.ptb_window,colour,cinema_liney(1),cinema_liney(2),cinema_liney(3),cinema_liney(4),penwidth);
         end
         
+        % draw retina radius
         function draw_retinaradius(obj)
+            if ~obj.options.cinema_display; return; end
             board_frame   = [0,0,obj.options.board_size];
             board_centre  = obj.board.retina.centre;
             board_radius  = obj.options.retina_focus;
@@ -99,15 +115,21 @@ classdef cinema < matlab.mixin.Copyable % handle + copyable
             Screen('FrameOval',obj.ptb_window,colour,cinema_rect,penwidth);
         end
         
+        % draw retina pigments
         function draw_retinapigments(obj)
+            if ~obj.options.cinema_display; return; end
             for i = 1:obj.options.retina_density
                 board_frame   = [0,0,obj.options.board_size];
-                board_centre  = obj.board.retina.centre + [obj.board.retina.hpigments(i),obj.board.retina.vpigments(i)];
+                board_centre  = obj.board.retina.centre + obj.board.retina.pigments(i,:);
                 cinema_frame  = obj.options.cinema_frame;
                 cinema_centre = rescale_point(board_centre,board_frame,cinema_frame);
                 radius = 1;
                 rect   = [cinema_centre(1)-radius,cinema_centre(2)-radius,cinema_centre(1)+radius,cinema_centre(2)+radius];
-                colour = [192,64,64];
+                if obj.board.retina.vision(i)
+                    colour = [192,64,64];
+                else
+                    colour = [0,0,0];
+                end
                 Screen('FillOval',obj.ptb_window,colour,rect);
             end
         end

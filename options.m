@@ -35,6 +35,7 @@ classdef options < matlab.mixin.Copyable % handle + copyable
         cinema_marge
         cinema_rect
         cinema_frame
+        looper_verbose
     end
     
     methods
@@ -44,17 +45,18 @@ classdef options < matlab.mixin.Copyable % handle + copyable
             % build default options
             obj.board_size              = [100,100];
             obj.ball_number             = 5;
-            obj.ball_radius             = 3;
-            obj.ball_speed              = 2;
+            obj.ball_radius             = 7;
+            obj.ball_speed              = 5;
             obj.ball_acceleration       = 0.95;
-            obj.retina_focus            = 10;
-            obj.retina_density          = 1000;
-            obj.cinema_display          = true;
+            obj.retina_focus            = 5;
+            obj.retina_density          = 300;
+            obj.cinema_display          = false;
             obj.cinema_balls            = true;
             obj.cinema_retinaradius     = true;
             obj.cinema_retinapigments   = true;
             obj.cinema_marge            = 100;
             obj.cinema_rect             = [0,0,obj.board_size + 2*obj.cinema_marge];
+            obj.looper_verbose          = false;
             % set options
             for i = 1:2:nargin
                 obj = set_option(obj,varargin{i},varargin{i+1});
