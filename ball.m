@@ -66,8 +66,11 @@ classdef ball < matlab.mixin.Copyable % handle + copyable
         % correct for collisions
         function [new_centre,dcentre,collisions] = collision(obj,i,dcentre,new_centre,collisions)
             for j = (i+1):obj.options.ball_number
-                dist = (new_centre(i,1)-new_centre(j,1))*(new_centre(i,1)-new_centre(j,1)) + (new_centre(i,2)-new_centre(j,2))*(new_centre(i,2)-new_centre(j,2));
-                if dist < 4*obj.options.ball_radius*obj.options.ball_radius
+                dist    = (obj.centre(i,1)-obj.centre(j,1))*(obj.centre(i,1)-obj.centre(j,1)) + (obj.centre(i,2)-obj.centre(j,2))*(obj.centre(i,2)-obj.centre(j,2));
+                newdist = (new_centre(i,1)-new_centre(j,1))*(new_centre(i,1)-new_centre(j,1)) + (new_centre(i,2)-new_centre(j,2))*(new_centre(i,2)-new_centre(j,2));
+                if (    newdist < 4*obj.options.ball_radius*obj.options.ball_radius && ...
+                        newdist < dist )
+                        
                     obj.speed(i) = obj.options.ball_speed;
                     obj.speed(j) = obj.options.ball_speed;
 
@@ -107,7 +110,7 @@ classdef ball < matlab.mixin.Copyable % handle + copyable
                  numinrange(obj.angle(i),pi*[0,1]))
                 obj.angle(i) = mod(-obj.angle(i),2*pi);
                 dcentre(i,:) = obj.speed(i)*[cos(obj.angle(i)), sin(obj.angle(i))];
-                obj.centre(i,:) = obj.centre(i,:) + dcentre(i,:);
+                new_centre(i,:) = obj.centre(i,:) + dcentre(i,:);
                 obj.speed(i) = obj.options.ball_speed;
             end
         end
@@ -129,7 +132,7 @@ classdef ball < matlab.mixin.Copyable % handle + copyable
                  numinrange(obj.angle(i),pi*[1,2]))
                 obj.angle(i) = mod(-obj.angle(i),2*pi);
                 dcentre(i,:) = obj.speed(i)*[cos(obj.angle(i)), sin(obj.angle(i))];
-                obj.centre(i,:) = obj.centre(i,:) + dcentre(i,:);
+                new_centre(i,:) = obj.centre(i,:) + dcentre(i,:);
                 obj.speed(i) = obj.options.ball_speed;
             end
         end

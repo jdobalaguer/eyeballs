@@ -25,9 +25,10 @@ classdef options < matlab.mixin.Copyable % handle + copyable
         ball_radius
         ball_speed
         ball_acceleration
+        cartes_nbx
+        cartes_nby
         retina_focus
         retina_density
-        retina_radius
         cinema_display
         cinema_balls
         cinema_retinaradius
@@ -48,6 +49,8 @@ classdef options < matlab.mixin.Copyable % handle + copyable
             obj.ball_radius             = 7;
             obj.ball_speed              = 5;
             obj.ball_acceleration       = 0.95;
+            obj.cartes_nbx              = 9;
+            obj.cartes_nby              = 9;
             obj.retina_focus            = 5;
             obj.retina_density          = 300;
             obj.cinema_display          = false;

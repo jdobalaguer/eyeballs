@@ -18,6 +18,7 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
             obj.objects.agent   = gme.agent;
             obj.objects.ball    = gme.board.ball;
             obj.objects.board   = gme.board;
+            obj.objects.cartes  = gme.board.cartes;
             obj.objects.cinema  = gme.cinema;
             obj.objects.looper  = obj;
             obj.objects.options = gme.options;
@@ -105,6 +106,15 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
                     % v
                     case KbStr({'v'})
                         obj.add('obj.objects.looper.verbose();');
+                    % arrows
+                    case KbStr({'UpArrow'})
+                        obj.add('obj.objects.looper.retina([0,-1]);');
+                    case KbStr({'DownArrow'})
+                        obj.add('obj.objects.looper.retina([0,+1]);');
+                    case KbStr({'LeftArrow'})
+                        obj.add('obj.objects.looper.retina([-1,0]);');
+                    case KbStr({'RightArrow'})
+                        obj.add('obj.objects.looper.retina([+1,0]);');
                     % tab
                     case KbStr({'tab'})
                         obj.add('obj.objects.looper.input();');
@@ -145,6 +155,7 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
             fprintf('help - [n]ext      : next step\n');
             fprintf('help - [p]ause     : pause experiment\n');
             fprintf('help - [v]erbose   : switch verbose mode\n');
+            fprintf('help - [arrows]    : move retina\n');
             fprintf('help - [tab]       : enter command\n');
             fprintf('help - [escape]    : quit\n');
             fprintf('\n');
@@ -165,6 +176,11 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
         % pause
         function pause(obj)
             obj.paused = ~obj.paused;
+        end
+        
+        % retina
+        function retina(obj,dcentre)
+            obj.objects.retina.centre = obj.objects.retina.centre + dcentre;
         end
         
         % stop
