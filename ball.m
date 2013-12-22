@@ -12,17 +12,29 @@ classdef ball < matlab.mixin.Copyable % handle + copyable
         function obj = ball(opt)
             % options
             obj.options = opt;
+            obj.reset();
+        end
+        
+        %% update methods
+        function reset(obj)
             % centre of balls (no overlapping)
-            ds = -1;
-            while any(ds(:) < 4*opt.ball_radius*opt.ball_radius)
-                obj.centre(:,1) = opt.ball_radius + rand(1,opt.ball_number) * (opt.board_size(1) - 2*opt.ball_radius);
-                obj.centre(:,2) = opt.ball_radius + rand(1,opt.ball_number) * (opt.board_size(2) - 2*opt.ball_radius);
-                ds = obj.dist2_balls();
-                ds(~ds) = Inf;
+            if obj.options.ball_number
+                ds = -1;
+                obj.centre = nan(obj.options.ball_number,2);
+                while any(ds(:) < 4*obj.options.ball_radius*obj.options.ball_radius)
+                    obj.centre(:,1) = obj.options.ball_radius + rand(1,obj.options.ball_number) * (obj.options.board_size(1) - 2*obj.options.ball_radius);
+                    obj.centre(:,2) = obj.options.ball_radius + rand(1,obj.options.ball_number) * (obj.options.board_size(2) - 2*obj.options.ball_radius);
+                    ds = obj.dist2_balls();
+                    ds(~ds) = Inf;
+                end
+                % angle and speed
+                obj.angle = 2 * pi * rand(1,obj.options.ball_number);
+                obj.speed = obj.options.ball_speed * rand(1,obj.options.ball_number);
+            else
+                obj.centre = zeros(0,2);
+                obj.angle  = zeros(1,0);
+                obj.speed  = zeros(1,0);
             end
-            % angle and speed
-            obj.angle = 2 * pi * rand(1,opt.ball_number);
-            obj.speed(1:opt.ball_number) = opt.ball_speed;
         end
         
         %% distance methods

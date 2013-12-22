@@ -9,9 +9,8 @@ classdef agent < matlab.mixin.Copyable % handle + copyable
     methods
         
         %% constructor
-        function obj = agent(opt,rtn)
+        function obj = agent(opt)
             obj.options = opt;
-            obj.retina  = rtn;
             obj.reward  = reward(opt);
         end
         

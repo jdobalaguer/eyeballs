@@ -30,9 +30,12 @@ classdef options < matlab.mixin.Copyable % handle + copyable
         retina_focus
         retina_density
         cinema_display
-        cinema_balls
-        cinema_retinaradius
+        cinema_ball
+        cinema_board
+        cinema_cartes
+        cinema_retinacross
         cinema_retinapigments
+        cinema_retinaradius
         cinema_marge
         cinema_rect
         cinema_frame
@@ -52,11 +55,14 @@ classdef options < matlab.mixin.Copyable % handle + copyable
             obj.cartes_nbx              = 9;
             obj.cartes_nby              = 9;
             obj.retina_focus            = 5;
-            obj.retina_density          = 300;
+            obj.retina_density          = 200;
             obj.cinema_display          = false;
-            obj.cinema_balls            = true;
-            obj.cinema_retinaradius     = true;
+            obj.cinema_ball             = true;
+            obj.cinema_cartes           = true;
+            obj.cinema_board            = true;
+            obj.cinema_retinacross      = true;
             obj.cinema_retinapigments   = true;
+            obj.cinema_retinaradius     = true;
             obj.cinema_marge            = 100;
             obj.cinema_rect             = [0,0,obj.board_size + 2*obj.cinema_marge];
             obj.looper_verbose          = false;

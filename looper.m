@@ -94,21 +94,33 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
                     % c
                     case KbStr({'c'})
                         obj.add('obj.objects.looper.cinema();');
+                        release();
                     % h
                     case KbStr({'h'})
                         obj.add('obj.objects.looper.help();');
+                        release();
                     % n
                     case KbStr({'n'})
                         obj.add('obj.objects.looper.next();');
+                        release();
                     % p
                     case KbStr({'p'})
                         obj.add('obj.objects.looper.pause();');
+                        release();
+                    % r
+                    case KbStr({'r'})
+                        obj.add('obj.objects.looper.resetboard();');
+                        release();
                     % v
                     case KbStr({'v'})
                         obj.add('obj.objects.looper.verbose();');
+                        release();
                     % arrows
                     case KbStr({'UpArrow'})
-                        obj.add('obj.objects.looper.retina([0,-1]);');
+                        cmd = 'obj.objects.looper.retina([0,-1]);';
+                        if isempty(obj.commands) || ~strcmp(obj.commands{1},cmd)
+                            obj.add(cmd);
+                        end
                     case KbStr({'DownArrow'})
                         obj.add('obj.objects.looper.retina([0,+1]);');
                     case KbStr({'LeftArrow'})
@@ -118,14 +130,16 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
                     % tab
                     case KbStr({'tab'})
                         obj.add('obj.objects.looper.input();');
+                        release();
                     % escape
                     case KbStr({'escape'})
                         obj.add('obj.objects.looper.stop();');
+                        release();
                     % otherwise
                     otherwise
                         obj.add('obj.objects.looper.error();');
+                        release();
                 end
-                release();
             end
         end
         
@@ -154,6 +168,7 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
             fprintf('help - [h]elp      : print this help menu\n');
             fprintf('help - [n]ext      : next step\n');
             fprintf('help - [p]ause     : pause experiment\n');
+            fprintf('help - [r]eset     : reset experiment\n');
             fprintf('help - [v]erbose   : switch verbose mode\n');
             fprintf('help - [arrows]    : move retina\n');
             fprintf('help - [tab]       : enter command\n');
@@ -178,9 +193,18 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
             obj.paused = ~obj.paused;
         end
         
+        % reset
+        function resetboard(obj)
+            obj.objects.board.reset();
+        end
+        
         % retina
         function retina(obj,dcentre)
-            obj.objects.retina.centre = obj.objects.retina.centre + dcentre;
+            centre = obj.objects.retina.centre + dcentre;
+            centre(centre<0) = 0;
+            ii = (centre>obj.objects.options.board_size);
+            centre(ii) = obj.objects.options.board_size(ii);
+            obj.objects.retina.centre = centre;
         end
         
         % stop
@@ -221,6 +245,8 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
                     obj.next();
                 case 'pause'
                     obj.pause();
+                case 'reset'
+                    obj.resetboard();
                 case 'quit'
                     obj.stop();
                 case 'verbose'
@@ -242,7 +268,7 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
         function execute3(obj,object,prop,value)
             if ~isfield(obj.objects,object);       fprintf('  ''%s'' not valid\n',object); obj.help();          return; end
             if ~isprop(obj.objects.(object),prop); fprintf('  ''%s.%s'' not valid\n',object,prop); obj.help();  return; end
-            obj.objects.(object).(prop) = value;
+            obj.objects.(object).(prop) = eval(value);
         end
         
         % 

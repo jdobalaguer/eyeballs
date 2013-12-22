@@ -35,10 +35,13 @@ classdef board < matlab.mixin.Copyable % handle + copyable
             for i = 1:obj.options.retina_density
                 pigment = obj.retina.centre+obj.retina.pigments(i,:);
                 dist2   = obj.ball.dist2_point(pigment);
+                % frame
                 if any(pigment<[0,0] | pigment>obj.options.board_size)
                     vision(i) = 1;
+                % ball
                 elseif any(dist2(:) < obj.options.ball_radius*obj.options.ball_radius) % ball
                     vision(i) = 2;
+                % background
                 else
                     vision(i) = 0;
                 end
@@ -49,11 +52,18 @@ classdef board < matlab.mixin.Copyable % handle + copyable
         % update cartes perception
         function view_cartes(obj)
             vision  = zeros(obj.options.cartes_nbx,obj.options.cartes_nby);
-            x = find(obj.cartes.x - obj.retina.centre(1) > 0 , 1) - 1;
-            y = find(obj.cartes.y - obj.retina.centre(2) > 0 , 1) - 1;
+            x = find(obj.cartes.x - obj.retina.centre(1) >= 0 , 1) - 1;
+            y = find(obj.cartes.y - obj.retina.centre(2) >= 0 , 1) - 1;
+            x(~x) = 1;
+            y(~y) = 1;
             vision(x,y) = 1;
             obj.cartes.vision = vision;
         end
         
+        %% update methods
+        function reset(obj)
+            obj.ball.reset();
+            obj.retina.reset();
+        end
     end
 end
