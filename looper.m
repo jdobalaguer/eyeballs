@@ -5,8 +5,10 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
         commands
         time
         inputing
+        consoling
+        vars
         paused
-        run
+        running
     end
     
     methods
@@ -28,33 +30,45 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
         
         %% loop methods
         
-        % get command
-        function command = get(obj)
-            % priorities
-            command = '';
-            if obj.inputing;            obj.input(); return;    end        % input mode
-            obj.read();                                                    % add shortcuts
-            if isempty(obj.commands);   obj.default();          end        % add default
-            if isempty(obj.commands);   return;                 end        % check empty
-            command = obj.commands{1};
-            obj.commands(1) = [];
-            if obj.objects.options.looper_verbose
-                dtime = toc(obj.time);
-                fprintf('%5.2fsec - cmd: %s\n',dtime,command);
+        % start commands
+        function start(obj)
+            obj.commands    = {};
+            obj.commands{end+1} = 'obj.objects.cinema.start();';
+            obj.inputing    = false;
+            obj.consoling   = false;
+            obj.vars        = struct();
+            obj.paused      = false;
+            obj.running     = true;
+            obj.time        = tic();
+            release();
+            while obj.running
+                obj.run();
             end
         end
         
-        % start commands
-        function start(obj)
-            obj.commands = {};
-            obj.commands{end+1} = 'obj.objects.cinema.start();';
-            obj.inputing = false;
-            obj.paused   = false;
-            obj.run      = true;
-            obj.time     = tic();
-            release();
-            while obj.run
-                eval(obj.get());
+        % get command
+        function run(obj)
+            if obj.inputing;  obj.input();   obj.update(); return; end  % input mode
+            if obj.consoling; obj.console(); obj.update(); return; end  % console mode
+            obj.read();                                                % add shortcuts
+            if isempty(obj.commands); obj.default(); end               % add default
+            if isempty(obj.commands); return; end                      % check empty
+            obj.runfirst();
+        end
+        
+        % run first command
+        function runfirst(obj)
+            cmd = obj.commands{1};
+            obj.commands(1) = [];
+            obj.print(cmd);
+            eval(cmd);
+        end
+        
+        % print command
+        function print(obj,cmd)
+            if obj.objects.options.looper_verbose
+                dtime = toc(obj.time);
+                fprintf('%5.2fsec - cmd: %s\n',dtime,cmd);
             end
         end
         
@@ -68,6 +82,11 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
             obj.commands = [command, obj.commands];
         end
         
+        % append
+        function append(obj,command)
+            obj.commands{end+1} = command;
+        end
+        
         % default commands
         function default(obj)
             if obj.paused; return; end
@@ -76,10 +95,23 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
         
         % next commands (default)
         function next(obj)
-            obj.commands{end+1} = 'obj.objects.board.play();';
-            obj.commands{end+1} = 'obj.objects.agent.play();';
-            obj.commands{end+1} = 'obj.objects.board.view();';
-            obj.commands{end+1} = 'obj.objects.cinema.draw_board();';
+            obj.append('obj.objects.board.play();');
+            obj.append('obj.objects.agent.play();');
+            obj.append('obj.objects.board.view();');
+            obj.append('obj.objects.cinema.draw_board();');
+        end
+        
+        % flush commands
+        function flush(obj)
+            while ~isempty(obj.commands)
+                obj.runfirst;
+            end
+        end
+        
+        % update looper
+        function update(obj)
+            obj.append('obj.objects.cinema.draw_board();');
+            obj.flush();
         end
         
         
@@ -93,11 +125,15 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
                 switch scode
                     % c
                     case KbStr({'c'})
-                        obj.add('obj.objects.looper.cinema();');
+                        obj.cinema();
                         release();
                     % h
                     case KbStr({'h'})
                         obj.add('obj.objects.looper.help();');
+                        release();
+                    % h
+                    case KbStr({'k'})
+                        obj.add('obj.objects.looper.onconsole();');
                         release();
                     % n
                     case KbStr({'n'})
@@ -129,7 +165,7 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
                         obj.add('obj.objects.looper.retina([+1,0]);');
                     % tab
                     case KbStr({'tab'})
-                        obj.add('obj.objects.looper.input();');
+                        obj.add('obj.objects.looper.oninput();');
                         release();
                     % escape
                     case KbStr({'escape'})
@@ -166,6 +202,7 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
             fprintf('\n');
             fprintf('help - [c]inema    : cinema display\n');
             fprintf('help - [h]elp      : print this help menu\n');
+            fprintf('help - [k]onsole   : console mode\n');
             fprintf('help - [n]ext      : next step\n');
             fprintf('help - [p]ause     : pause experiment\n');
             fprintf('help - [r]eset     : reset experiment\n');
@@ -177,15 +214,23 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
         end
         
         %input
-        function input(obj)
+        function oninput(obj)
+            obj.flush();
             obj.inputing = true;
-            cmd = input('> ','s');
-            release();
-            obj.execute(cmd);
+            obj.consoling = false;
+        end
+        function offinput(obj)
+            obj.inputing = false;
         end
         
-        function deinput(obj)
+        %console
+        function onconsole(obj)
+            obj.flush();
+            obj.consoling = true;
             obj.inputing = false;
+        end
+        function offconsole(obj)
+            obj.consoling = false;
         end
         
         % pause
@@ -210,7 +255,7 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
         % stop
         function stop(obj)
             Screen('CloseAll');
-            obj.run = false;
+            obj.running = false;
         end
         
         % verbose
@@ -219,59 +264,112 @@ classdef looper < matlab.mixin.Copyable % handle + copyable
         end
         
         
-        %% execute methods
+        %% input methods
         
-        function execute(obj,cmd)
-            cmds = parse(cmd);
-            switch length(cmds)
-                case 0
-                case 1
-                    obj.execute1(cmds{1});
-                case 2
-                    obj.execute2(cmds{1},cmds{2});
-                case 3
-                    obj.execute3(cmds{1},cmds{2},cmds{3});
+        % input
+        function input(obj)
+            cmd = input('> ','s');
+            release();
+            obj.input_execute(cmd);
+        end
+        
+        % parse command
+        function cmds = input_parse(~,cmd)
+            cmd = strtrim(cmd);
+            if isempty(cmd);        cmds = {};
+            elseif all(cmd==' ');   cmds = {};
+            else                    cmds = regexp(cmd,'\s*','split');
             end
         end
         
-        % execute: commands
-        function execute1(obj,cmd)
+        % execute
+        function input_execute(obj,cmd)
+            cmds = obj.input_parse(cmd);
+            switch length(cmds)
+                case 0
+                case 1
+                    obj.input_execute1(cmds{1});
+                case 2
+                    obj.input_execute2(cmds{1},cmds{2});
+                case 3
+                    obj.input_execute3(cmds{1},cmds{2},cmds{3});
+            end
+        end
+        
+        % execute: hotkey commands (1 field)
+        function input_execute1(obj,cmd)
             switch cmd
                 case 'cinema'
                     obj.cinema();
                 case 'help'
-                    obj.help();
+                    obj.add('obj.help();');
+                case 'konsole'
+                    obj.add('obj.onconsole();');
                 case 'next'
-                    obj.next();
+                    obj.add('obj.next();');
                 case 'pause'
-                    obj.pause();
+                    obj.add('obj.pause();');
                 case 'reset'
-                    obj.resetboard();
+                    obj.add('obj.resetboard();');
                 case 'quit'
-                    obj.stop();
+                    obj.add('obj.stop();');
                 case 'verbose'
-                    obj.verbose();
+                    obj.add('obj.verbose();');
                 case 'exit'
-                    obj.deinput();
+                    obj.add('obj.offinput();');
                 otherwise
                     fprintf('> ''%s'' not valid\n',cmd);
             end
         end
         
         % execute: object commands (2 fields) 
-        function execute2(obj,object,cmd)
+        function input_execute2(obj,object,cmd)
             if ~isfield(obj.objects,object);       fprintf('  ''%s'' not valid\n',object); obj.help();          return; end
             obj.objects.(object).execute(cmd);
         end
         
         % execute: set variables (3 fields)
-        function execute3(obj,object,prop,value)
+        function input_execute3(obj,object,prop,value)
             if ~isfield(obj.objects,object);       fprintf('  ''%s'' not valid\n',object); obj.help();          return; end
             if ~isprop(obj.objects.(object),prop); fprintf('  ''%s.%s'' not valid\n',object,prop); obj.help();  return; end
             obj.objects.(object).(prop) = eval(value);
         end
         
-        % 
+        
+        %% console methods
+        
+        % console
+        function console(obj)
+            cmd = input('$ ','s');
+            release();
+            obj.console_execute(cmd);
+        end
+        
+        % parse
+        function cmd = console_parse(~,cmd)
+            cmd = strtrim(cmd);
+            cmd = strrep(cmd,'!','obj.vars.');
+        end
+        
+        % execute
+        function console_execute(obj,cmd)
+            cmd = obj.console_parse(cmd);
+            switch cmd
+                case 'exit'
+                    obj.add('obj.offconsole();');
+                case 'quit'
+                    obj.add('obj.stop()');
+                case 'input'
+                    obj.add('');obj.oninput();
+                otherwise
+                    try
+                        eval(cmd)
+                    catch err
+                        fprintf([err.message,'\n']);
+                    end
+            end
+        end
+
     end
 end
 
@@ -302,13 +400,5 @@ end
 % convert binary vector to string
 function str = bin2str(bin)
     str = dec2bin(bin)';
-end
-
-% parse command
-function cmds = parse(cmd)
-    if isempty(cmd);        cmds = {};
-    elseif all(cmd==' ');   cmds = {};
-    else                    cmds = regexp(cmd,'\s*','split');
-    end
 end
 
