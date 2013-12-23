@@ -20,6 +20,7 @@ classdef options < matlab.mixin.Copyable % handle + copyable
 %
 
     properties
+        agent_verbose
         board_size
         ball_number
         ball_radius
@@ -40,6 +41,7 @@ classdef options < matlab.mixin.Copyable % handle + copyable
         cinema_rect
         cinema_frame
         looper_verbose
+        time
     end
     
     methods
@@ -47,13 +49,14 @@ classdef options < matlab.mixin.Copyable % handle + copyable
             % check length of input
             assert(~mod(nargin,2),'options: error. odd number of arguments');
             % build default options
+            obj.agent_verbose           = false;
             obj.board_size              = [100,100];
-            obj.ball_number             = 5;
+            obj.ball_number             = 1;
             obj.ball_radius             = 7;
-            obj.ball_speed              = 5;
+            obj.ball_speed              = 7;
             obj.ball_acceleration       = 0.95;
-            obj.cartes_nbx              = 9;
-            obj.cartes_nby              = 9;
+            obj.cartes_nbx              = 5;
+            obj.cartes_nby              = 5;
             obj.retina_focus            = 5;
             obj.retina_density          = 200;
             obj.cinema_display          = false;
@@ -63,22 +66,14 @@ classdef options < matlab.mixin.Copyable % handle + copyable
             obj.cinema_retinacross      = true;
             obj.cinema_retinapigments   = true;
             obj.cinema_retinaradius     = true;
-            obj.cinema_marge            = 100;
-            obj.cinema_rect             = [0,0,obj.board_size + 2*obj.cinema_marge];
+            obj.cinema_rect             = [0,0,600,600];
+            obj.cinema_frame            = [100,100,500,500];
             obj.looper_verbose          = false;
+            obj.time                    = 0;
             % set options
             for i = 1:2:nargin
                 obj = set_option(obj,varargin{i},varargin{i+1});
             end
-            % set frame
-            set_frame(obj);
-        end
-        
-        function set_frame(obj)
-            marge = obj.cinema_marge;
-            rect  = obj.cinema_rect;
-            frame = [marge,marge,rect(3)-rect(1)-marge,rect(4)-rect(2)-marge];
-            obj.cinema_frame = frame;
         end
         
         function obj = set_option(obj,field,value)

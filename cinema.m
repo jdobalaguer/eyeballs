@@ -31,7 +31,7 @@ classdef cinema < matlab.mixin.Copyable % handle + copyable
         
         function stop(obj)
             if ~obj.options.cinema_display; return; end
-            Screen('CloseAll');
+            Screen('Close',obj.ptb_screen);
         end
         
         %% screen methods

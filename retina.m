@@ -24,5 +24,13 @@ classdef retina < matlab.mixin.Copyable % handle + copyable
             obj.vision   = zeros(1,obj.options.retina_density);
         end
         
+        %% play methods
+        function play(obj,dcentre)
+            obj.centre = obj.centre + dcentre;
+            obj.centre(obj.centre<0) = 0;
+            ii = (obj.centre>obj.options.board_size);
+            obj.centre(ii) = obj.options.board_size(ii);
+        end
+        
     end
 end

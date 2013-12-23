@@ -24,13 +24,14 @@ classdef board < matlab.mixin.Copyable % handle + copyable
         %% view methods
         
         % update perception
-        function view(obj)
-            obj.view_retina();
-            obj.view_cartes();
+        function vision = view(obj)
+            vision_retina = obj.view_retina();
+            vision_cartes = obj.view_cartes();
+            vision = [mat2vec(vision_retina),mat2vec(vision_cartes)];
         end
         
         % update retina perception
-        function view_retina(obj)
+        function vision = view_retina(obj)
             vision = zeros(1,obj.options.retina_density);
             for i = 1:obj.options.retina_density
                 pigment = obj.retina.centre+obj.retina.pigments(i,:);
@@ -50,7 +51,7 @@ classdef board < matlab.mixin.Copyable % handle + copyable
         end
         
         % update cartes perception
-        function view_cartes(obj)
+        function vision = view_cartes(obj)
             vision  = zeros(obj.options.cartes_nbx,obj.options.cartes_nby);
             x = find(obj.cartes.x - obj.retina.centre(1) >= 0 , 1) - 1;
             y = find(obj.cartes.y - obj.retina.centre(2) >= 0 , 1) - 1;
@@ -66,4 +67,10 @@ classdef board < matlab.mixin.Copyable % handle + copyable
             obj.retina.reset();
         end
     end
+end
+
+
+%% auxiliar methods
+function y = mat2vec(x)
+    y = reshape(x,[1,numel(x)]);
 end
